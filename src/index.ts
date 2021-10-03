@@ -21,18 +21,9 @@ class VideoStream extends EventEmitter {
     }
 
     private async getFrame() {
-        await exec(" libcamera-still --immediate --width 640 --height 480 -e png -o test.png --flush")
-        let fileData = fs.readFileSync('test.png')
-        let png = new PNG()
-        png.parse(fileData, (error, img) => {
-            if (error) {
-                console.error(error)
-                this.stop()
-            } else {
-                console.log("writeData: " + img.data.length)
-                this.emit('newFrame', img.data)
-            }
-        })
+        await exec(" libcamera-still --immediate --width 640 --height 480 -o test.jpg --flush")
+        let fileData = fs.readFileSync('test.jpg')
+        this.emit('newFrame', fileData)
     }
 
     start() {
@@ -60,14 +51,15 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
 
     videoStream.start()
     res.writeHead(200, {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0',
-        'Pragma': 'no-cache',
-        'Connection': 'close',
-        'Content-Type': 'multipart/x-mixed-replace; boundary=--myboundary'
-    })
+        'Content-Type': 'multipart/x-mixed-replace;boundary="BOUNDARY-ID"',
+        'Connection': 'keep-alive',
+        'Expires': 'Fri, 27 May 1977 00:00:00 GMT',
+        'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate',
+        'Pragma': 'no-cache'
+    });
 
     let isReady = true
-    videoStream.on("newFrame", (frameData: Buffer) => {
+    videoStream.on("newFrame", (data: Buffer) => {
         try {
             if (!isReady) {
                 return;
@@ -75,11 +67,14 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
 
             isReady = false
 
-            console.log('Writing frame: ' + frameData.length)
-            res.write(`--myboundary\nContent-Type: image/jpg\nContent-length: ${frameData.length}\n\n`)
-            res.write(frameData, function () {
-
-                isReady = true;
+            console.log('Writing frame: ' + data.length)
+            res.write('--BOUNDARY-ID\r\n')
+            res.write('Content-Type: image/jpeg\r\n')
+            res.write('Content-Length: ' + data.length + '\r\n')
+            res.write("\r\n")
+            res.write(new Buffer(data), 'binary')
+            res.write("\r\n",() => {
+                isReady = true
             })
         } catch (ex) {
             console.log('Unable to send frame: ' + ex)
