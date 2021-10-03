@@ -38,7 +38,7 @@ class VideoStream extends EventEmitter {
     }
 
     stop() {
-        this.isRunning = true
+        this.isRunning = false
     }
 }
 
