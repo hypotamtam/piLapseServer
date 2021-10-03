@@ -21,7 +21,7 @@ class VideoStream extends EventEmitter {
     }
 
     private async getFrame() {
-        await exec("./libcamera-still -e png -o test.png")
+        await exec("libcamera-still -e png -o test.png")
         let fileData = fs.readFileSync('test.png')
         let png = new PNG()
         png.parse(fileData, (error, img) => {
