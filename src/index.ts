@@ -82,7 +82,7 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
 app.get("/stop",  (req: Request, res: Response) => {
     videoStream.stop()
     res.status(200)
-        .send
+        .send("stream finished")
 })
 
 app.listen(3000, () => {
