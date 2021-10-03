@@ -21,11 +21,17 @@ class VideoStream extends EventEmitter {
     }
 
     private async getFrame() {
-        await exec("libcamera-still -e png -o test.png")
+        await exec(" libcamera-still --immediate --width 640 --height 480 -e png -o test.png --flush")
         let fileData = fs.readFileSync('test.png')
         let png = new PNG()
         png.parse(fileData, (error, img) => {
-            this.emit('newFrame', img.data)
+            if (error) {
+                console.error(error)
+                this.stop()
+            } else {
+                console.log("writeData: " + img.data.length)
+                this.emit('newFrame', img.data)
+            }
         })
     }
 
@@ -39,6 +45,7 @@ class VideoStream extends EventEmitter {
 
     stop() {
         this.isRunning = false
+        this.emit('stop')
     }
 }
 
@@ -71,11 +78,16 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
             console.log('Writing frame: ' + frameData.length)
             res.write(`--myboundary\nContent-Type: image/jpg\nContent-length: ${frameData.length}\n\n`)
             res.write(frameData, function () {
+
                 isReady = true;
             })
         } catch (ex) {
             console.log('Unable to send frame: ' + ex)
         }
+    })
+
+    videoStream.on("stop", () => {
+        res.end()
     })
 })
 
