@@ -2,7 +2,6 @@ import express, {Request, Response} from "express"
 import Util from "util"
 import EventEmitter from "events"
 import ChildProcess from "child_process"
-import {PNG} from "pngjs"
 import fs from "fs"
 
 const app = express()
@@ -72,7 +71,7 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
             res.write('Content-Type: image/jpeg\r\n')
             res.write('Content-Length: ' + data.length + '\r\n')
             res.write("\r\n")
-            res.write(new Buffer(data), 'binary')
+            res.write(Buffer.from(data), 'binary')
             res.write("\r\n",() => {
                 isReady = true
             })
