@@ -10,6 +10,23 @@ const exec = Util.promisify(ChildProcess.exec);
 class VideoStream extends EventEmitter {
     private isRunning: boolean = false
 
+    private readonly config: VideoStreamConfig
+
+    private readonly command: string
+
+    constructor(config: VideoStreamConfig) {
+        super();
+        this.config = config
+
+        this.command = Object.keys(config)
+            .map((key) => {
+                return key + " " + config[key as VideoStreamConfigValue]
+            })
+            .reduce((previousValue, currentValue) => {
+                return previousValue + " " + currentValue
+            }, "libcamera-still")
+    }
+
     private run() {
         this.getFrame()
             .finally(() => {
@@ -20,7 +37,8 @@ class VideoStream extends EventEmitter {
     }
 
     private async getFrame() {
-        await exec(" libcamera-still --immediate --width 640 --height 480 -o test.jpg --flush")
+
+        await exec(this.command)
         let fileData = fs.readFileSync('test.jpg')
         this.emit('newFrame', fileData)
     }
@@ -44,7 +62,12 @@ app.get('/test', (req: Request, res: Response) => {
         .send("youpi")
 })
 
-const videoStream = new VideoStream()
+const videoStream = new VideoStream({
+    [VideoStreamConfigValue.width]: "640",
+    [VideoStreamConfigValue.height]: "320",
+    [VideoStreamConfigValue.exposure]: "sport",
+    [VideoStreamConfigValue.output]: "test.jpg"
+})
 
 app.get('/stream.mjpg', (req: Request, res: Response) => {
 
@@ -72,7 +95,7 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
             res.write('Content-Length: ' + data.length + '\r\n')
             res.write("\r\n")
             res.write(Buffer.from(data), 'binary')
-            res.write("\r\n",() => {
+            res.write("\r\n", () => {
                 isReady = true
             })
         } catch (ex) {
@@ -85,7 +108,7 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
     })
 })
 
-app.get("/stop",  (req: Request, res: Response) => {
+app.get("/stop", (req: Request, res: Response) => {
     videoStream.stop()
     res.status(200)
         .send("stream finished")
