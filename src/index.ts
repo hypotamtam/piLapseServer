@@ -91,34 +91,31 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
     });
 
     let isReady = true
-    const fileWatcher = fs.watch(tmpFile,
-        {persistent: true, recursive: true},
-        (eventType) => {
-            if (eventType == 'change') {
-                try {
-                    let data = fs.readFileSync(tmpFile)
-                    if (!isReady) {
-                        console.log('Skip frame: ' + data.length)
-                        return;
-                    }
-
-                    isReady = false
-
-                    console.log('Writing frame: ' + data.length)
-                    res.write('--BOUNDARY-ID\r\n')
-                    res.write('Content-Type: image/jpeg\r\n')
-                    res.write('Content-Length: ' + data.length + '\r\n')
-                    res.write("\r\n")
-                    res.write(data, 'binary')
-                    res.write("\r\n", () => {
-                        isReady = true
-                    })
-                } catch (ex) {
-                    console.log('Unable to send frame: ' + ex)
+    const fileWatcher = fs.watch(tmpFile, {persistent: true}, (eventType) => {
+        if (eventType == 'change') {
+            try {
+                let data = fs.readFileSync(tmpFile)
+                if (!isReady) {
+                    console.log('Skip frame: ' + data.length)
+                    return;
                 }
+                isReady = false
 
+                console.log('Writing frame: ' + data.length)
+                res.write('--BOUNDARY-ID\r\n')
+                res.write('Content-Type: image/jpeg\r\n')
+                res.write('Content-Length: ' + data.length + '\r\n')
+                res.write("\r\n")
+                res.write(data, 'binary')
+                res.write("\r\n", () => {
+                    isReady = true
+                })
+            } catch (ex) {
+                console.log('Unable to send frame: ' + ex)
             }
-        })
+
+        }
+    })
 
     videoStream.on("stop", () => {
         fileWatcher.close()
