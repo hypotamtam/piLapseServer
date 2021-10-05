@@ -71,6 +71,7 @@ app.get('/test', (req: Request, res: Response) => {
 })
 
 const tmpFile = path.resolve(path.join(os.tmpdir(), uuidV4() + ".jpg"))
+fs.appendFileSync(tmpFile, "")
 
 const videoStream = new VideoStream({
     [VideoStreamConfigValue.width]: "640",
