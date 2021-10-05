@@ -3,6 +3,8 @@ import Util from "util"
 import EventEmitter from "events"
 import ChildProcess from "child_process"
 import fs from "fs"
+import {VideoStreamConfig, VideoStreamConfigValue} from "./VideoStreamConfig";
+
 
 const app = express()
 const exec = Util.promisify(ChildProcess.exec);
@@ -37,10 +39,14 @@ class VideoStream extends EventEmitter {
     }
 
     private async getFrame() {
-
-        await exec(this.command)
-        let fileData = fs.readFileSync('test.jpg')
-        this.emit('newFrame', fileData)
+        try {
+            await exec(this.command)
+            let fileData = fs.readFileSync('test.jpg')
+            this.emit('newFrame', fileData)
+        } catch(error) {
+            console.error(`Command ${this.command} failed ${error}`)
+            this.stop()
+        }
     }
 
     start() {

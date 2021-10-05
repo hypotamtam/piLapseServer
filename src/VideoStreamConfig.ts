@@ -1,5 +1,5 @@
 
-enum VideoStreamConfigValue {
+export enum VideoStreamConfigValue {
     width = "--width",
     height = "--height",
     timeout = "-t",
@@ -40,4 +40,4 @@ enum VideoStreamConfigValue {
     raw = "-r",
 }
 
-type VideoStreamConfig = {[key in VideoStreamConfigValue]?: string}
+export type VideoStreamConfig = {[key in VideoStreamConfigValue]?: string}
