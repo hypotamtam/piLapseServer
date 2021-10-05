@@ -4,6 +4,9 @@ import EventEmitter from "events"
 import ChildProcess from "child_process"
 import fs from "fs"
 import {VideoStreamConfig, VideoStreamConfigValue} from "./VideoStreamConfig";
+import os from "os"
+import {v4 as uuidV4} from "uuid"
+import path from "path"
 
 
 const app = express()
@@ -26,11 +29,11 @@ class VideoStream extends EventEmitter {
             })
             .reduce((previousValue, currentValue) => {
                 return previousValue + " " + currentValue
-            }, "libcamera-still")
+            }, "libcamera-still --immediate")
     }
 
     private run() {
-        this.getFrame()
+        this.takePicture()
             .finally(() => {
                 if (this.isRunning) {
                     this.run()
@@ -38,12 +41,10 @@ class VideoStream extends EventEmitter {
             })
     }
 
-    private async getFrame() {
+    private async takePicture() {
         try {
             await exec(this.command)
-            let fileData = fs.readFileSync('test.jpg')
-            this.emit('newFrame', fileData)
-        } catch(error) {
+        } catch (error) {
             console.error(`Command ${this.command} failed ${error}`)
             this.stop()
         }
@@ -63,16 +64,19 @@ class VideoStream extends EventEmitter {
     }
 }
 
+
 app.get('/test', (req: Request, res: Response) => {
     res.status(200)
         .send("youpi")
 })
 
+const tmpFile = path.resolve(path.join(os.tmpdir(), uuidV4() + ".jpg"))
+
 const videoStream = new VideoStream({
     [VideoStreamConfigValue.width]: "640",
     [VideoStreamConfigValue.height]: "320",
     [VideoStreamConfigValue.exposure]: "sport",
-    [VideoStreamConfigValue.output]: "test.jpg"
+    [VideoStreamConfigValue.output]: tmpFile
 })
 
 app.get('/stream.mjpg', (req: Request, res: Response) => {
@@ -87,29 +91,37 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
     });
 
     let isReady = true
-    videoStream.on("newFrame", (data: Buffer) => {
-        try {
-            if (!isReady) {
-                return;
+    const fileWatcher = fs.watch(tmpFile,
+        {persistent: true, recursive: true},
+        (eventType) => {
+            if (eventType == 'change') {
+                try {
+                    let data = fs.readFileSync(tmpFile)
+                    if (!isReady) {
+                        console.log('Skip frame: ' + data.length)
+                        return;
+                    }
+
+                    isReady = false
+
+                    console.log('Writing frame: ' + data.length)
+                    res.write('--BOUNDARY-ID\r\n')
+                    res.write('Content-Type: image/jpeg\r\n')
+                    res.write('Content-Length: ' + data.length + '\r\n')
+                    res.write("\r\n")
+                    res.write(data, 'binary')
+                    res.write("\r\n", () => {
+                        isReady = true
+                    })
+                } catch (ex) {
+                    console.log('Unable to send frame: ' + ex)
+                }
+
             }
-
-            isReady = false
-
-            console.log('Writing frame: ' + data.length)
-            res.write('--BOUNDARY-ID\r\n')
-            res.write('Content-Type: image/jpeg\r\n')
-            res.write('Content-Length: ' + data.length + '\r\n')
-            res.write("\r\n")
-            res.write(Buffer.from(data), 'binary')
-            res.write("\r\n", () => {
-                isReady = true
-            })
-        } catch (ex) {
-            console.log('Unable to send frame: ' + ex)
-        }
-    })
+        })
 
     videoStream.on("stop", () => {
+        fileWatcher.close()
         res.end()
     })
 })
