@@ -1,7 +1,7 @@
 import express, {Request, Response} from "express"
 import Util from "util"
 import EventEmitter from "events"
-import ChildProcess from "child_process"
+import Child_process, {ChildProcess} from "child_process"
 import fs from "fs"
 import {VideoStreamConfig, VideoStreamConfigValue} from "./VideoStreamConfig";
 import os from "os"
@@ -10,18 +10,31 @@ import path from "path"
 
 
 const app = express()
-const exec = Util.promisify(ChildProcess.exec);
+const exec = Util.promisify(Child_process.exec)
+type ExecPromise = ReturnType<typeof exec>
 
 class VideoStream extends EventEmitter {
-    private isRunning: boolean = false
 
-    private readonly config: VideoStreamConfig
+    private processPromise?: ExecPromise
 
     private readonly command: string
 
+    get isRunning(): boolean {
+        if (this.process) {
+            return this.process.exitCode == null
+        }
+        return false
+    }
+
+    private get process(): ChildProcess | undefined {
+        if (this.processPromise) {
+            return this.processPromise.child
+        }
+        return undefined
+    }
+
     constructor(config: VideoStreamConfig) {
-        super();
-        this.config = config
+        super()
 
         this.command = Object.keys(config)
             .map((key) => {
@@ -33,42 +46,29 @@ class VideoStream extends EventEmitter {
     }
 
     private run() {
-        this.takePicture()
-            .finally(() => {
-                if (this.isRunning) {
-                    this.run()
-                }
+        this.processPromise = exec(this.command)
+        this.processPromise
+            .then(() => { this.run() })
+            .catch((error) => {
+                console.error(`Command ${this.command} failed ${error}`)
+                this.stop()
             })
-    }
-
-    private async takePicture() {
-        try {
-            await exec(this.command)
-        } catch (error) {
-            console.error(`Command ${this.command} failed ${error}`)
-            this.stop()
-        }
     }
 
     start() {
         if (this.isRunning) {
             return
         }
-        this.isRunning = true
         this.run()
     }
 
     stop() {
-        this.isRunning = false
+        if (this.process) {
+            this.process.kill()
+        }
         this.emit('stop')
     }
 }
-
-
-app.get('/test', (req: Request, res: Response) => {
-    res.status(200)
-        .send("youpi")
-})
 
 const tmpFile = path.resolve(path.join(os.tmpdir(), uuidV4() + ".jpg"))
 fs.appendFileSync(tmpFile, "")
@@ -77,7 +77,18 @@ const videoStream = new VideoStream({
     [VideoStreamConfigValue.width]: "640",
     [VideoStreamConfigValue.height]: "320",
     [VideoStreamConfigValue.exposure]: "sport",
+    [VideoStreamConfigValue.timelapse]: "50",
+    [VideoStreamConfigValue.timeout]: "9999999",
     [VideoStreamConfigValue.output]: tmpFile
+})
+
+app.get('/healthCheck', (req: Request, res: Response) => {
+    res.status(200)
+    if (videoStream.isRunning) {
+        res.send("Video streaming on stage ")
+    } else {
+        res.send("Video streaming stopped")
+    }
 })
 
 app.get('/stream.mjpg', (req: Request, res: Response) => {
