@@ -15,6 +15,7 @@ class VideoStream extends EventEmitter {
     private process?: ChildProcess
 
     private readonly command: string
+    private readonly parameters: string[]
 
     get isRunning(): boolean {
         if (this.process) {
@@ -26,18 +27,23 @@ class VideoStream extends EventEmitter {
     constructor(config: VideoStreamConfig) {
         super()
 
-        this.command = Object.keys(config)
-            .map((key) => {
-                return key + " " + config[key as VideoStreamConfigValue]
+        this.command = "libcamera-still"
+        this.parameters = Object.keys(config)
+            .map( key => {
+                return { key: key, value: config[key as VideoStreamConfigValue]}
             })
             .reduce((previousValue, currentValue) => {
-                return previousValue + " " + currentValue
-            }, "libcamera-still --immediate")
+                if (currentValue.value) {
+                    previousValue.push(currentValue.key)
+                    previousValue.push(currentValue.value)
+                }
+                return previousValue
+            }, ["--immediate"])
     }
 
     private run() {
         console.log("Run command " + this.command)
-        this.process = spawn(this.command, {
+        this.process = spawn(this.command, this.parameters, {
             detached: true,
             stdio: 'ignore'
         })
