@@ -1,7 +1,6 @@
 import express, {Request, Response} from "express"
-import Util from "util"
 import EventEmitter from "events"
-import Child_process, {ChildProcess} from "child_process"
+import {spawn, ChildProcess} from "child_process"
 import fs from "fs"
 import {VideoStreamConfig, VideoStreamConfigValue} from "./VideoStreamConfig";
 import os from "os"
@@ -10,12 +9,10 @@ import path from "path"
 
 
 const app = express()
-const exec = Util.promisify(Child_process.exec)
-type ExecPromise = ReturnType<typeof exec>
 
 class VideoStream extends EventEmitter {
 
-    private processPromise?: ExecPromise
+    private process?: ChildProcess
 
     private readonly command: string
 
@@ -24,13 +21,6 @@ class VideoStream extends EventEmitter {
             return this.process.exitCode == null
         }
         return false
-    }
-
-    private get process(): ChildProcess | undefined {
-        if (this.processPromise) {
-            return this.processPromise.child
-        }
-        return undefined
     }
 
     constructor(config: VideoStreamConfig) {
@@ -47,13 +37,24 @@ class VideoStream extends EventEmitter {
 
     private run() {
         console.log("Run command " + this.command)
-        this.processPromise = exec(this.command)
-        this.processPromise
-            .then(() => { this.run() })
-            .catch((error) => {
-                console.error(`Command ${this.command} failed ${error}`)
+        this.process = spawn(this.command, {
+            detached: true,
+            stdio: 'ignore'
+        })
+
+        this.process.on("close", (code, signal) => {
+            if (code == 0) {
+                this.run()
+            } else {
+                console.error(`Command ${this.command} failed with code ${code} and signal ${signal}`)
                 this.stop()
-            })
+            }
+        })
+
+        this.process.on('error', error => {
+            console.error(`Command ${this.command} failed ${error}`)
+            this.stop()
+        })
     }
 
     start() {
