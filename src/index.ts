@@ -46,6 +46,7 @@ class VideoStream extends EventEmitter {
     }
 
     private run() {
+        console.log("Run command " + this.command)
         this.processPromise = exec(this.command)
         this.processPromise
             .then(() => { this.run() })
@@ -82,6 +83,13 @@ const videoStream = new VideoStream({
     [VideoStreamConfigValue.output]: tmpFile
 })
 
+
+app.get('/', (req, res) => {
+    res.writeHead(200, { "content-type": "text/html;charset=utf-8" })
+    res.write(fs.readFileSync("Test.html"))
+    res.end()
+})
+
 app.get('/healthCheck', (req: Request, res: Response) => {
     res.status(200)
     if (videoStream.isRunning) {
@@ -89,6 +97,7 @@ app.get('/healthCheck', (req: Request, res: Response) => {
     } else {
         res.send("Video streaming stopped")
     }
+    res.end()
 })
 
 app.get('/stream.mjpg', (req: Request, res: Response) => {
@@ -139,6 +148,7 @@ app.get("/stop", (req: Request, res: Response) => {
     videoStream.stop()
     res.status(200)
         .send("stream finished")
+        .end()
 })
 
 app.listen(3000, () => {
