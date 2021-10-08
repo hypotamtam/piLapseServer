@@ -129,7 +129,6 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
                 }
                 isReady = false
 
-                console.log('Writing frame: ' + data.length)
                 res.write('--BOUNDARY-ID\r\n')
                 res.write('Content-Type: image/jpeg\r\n')
                 res.write('Content-Length: ' + data.length + '\r\n')
