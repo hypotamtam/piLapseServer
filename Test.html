@@ -25,15 +25,14 @@
 <script>
 
     function onLoad() {
-        document.getElementById("streamImg").src = window.location.origin + "/stream.mjpg"
         setTimeout(startStream, 2000)
     }
 
-    function sendRequest(method, path) {
+    function sendRequest(method, path, callback) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = function () {
             if (xmlHttp.readyState === xmlHttp.DONE && xmlHttp.status === 200) {
-                document.getElementById("status").innerHTML = xmlHttp.responseText
+                callback(xmlHttp.responseText)
             }
         }
         xmlHttp.open(method, window.location.origin + path, true);
@@ -41,14 +40,21 @@
     }
 
     function stopStream() {
-        sendRequest("PUT", "/stop");
+        sendRequest("PUT", "/stop", () => {
+            status()
+        });
     }
 
     function status() {
-        sendRequest("GET", "/healthCheck")
+        sendRequest("GET", "/healthCheck", (text) => {
+            document.getElementById("status").innerHTML = text
+        })
     }
 
     function startStream() {
-        sendRequest("PUT", "/start");
+        sendRequest("PUT", "/start", () => {
+            document.getElementById("streamImg").src = window.location.origin + "/stream.mjpg"
+            status()
+        });
     }
 </script>
