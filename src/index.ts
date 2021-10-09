@@ -1,25 +1,25 @@
 import express, {Request, Response} from "express"
 import fs from "fs"
-import {VideoStreamConfigValue} from "./VideoStreamConfig";
 import os from "os"
 import {v4 as uuidV4} from "uuid"
 import path from "path"
-import {VideoStream} from "./VideoStream";
+import {Libcam} from "./Libcam";
+import {LibcamConfig} from "./LibcamConfig";
 
 const app = express()
 
 const tmpFile = path.resolve(path.join(os.tmpdir(), uuidV4() + ".jpg"))
 fs.appendFileSync(tmpFile, "")
 
-const videoStream = new VideoStream({
-    [VideoStreamConfigValue.width]: "640",
-    [VideoStreamConfigValue.height]: "320",
-    [VideoStreamConfigValue.exposure]: "sport",
-    [VideoStreamConfigValue.timelapse]: "50",
-    [VideoStreamConfigValue.timeout]: "9999999",
-    [VideoStreamConfigValue.output]: tmpFile
+const libcam = new Libcam({
+    "width": "640",
+    "height": "320",
+    "exposure": "sport",
+    "timelapse": "50",
+    "timeout": "9999999",
+    "output": tmpFile,
+    "immediate": ""
 })
-
 
 app.get('/', (req, res) => {
     res.writeHead(200, { "content-type": "text/html;charset=utf-8" })
@@ -29,7 +29,7 @@ app.get('/', (req, res) => {
 
 app.get('/healthCheck', (req: Request, res: Response) => {
     res.status(200)
-    if (videoStream.isRunning) {
+    if (libcam.isRunning) {
         res.send("Video streaming on stage ")
     } else {
         res.send("Video streaming stopped")
@@ -38,8 +38,6 @@ app.get('/healthCheck', (req: Request, res: Response) => {
 })
 
 app.get('/stream.mjpg', (req: Request, res: Response) => {
-
-    videoStream.start()
     res.writeHead(200, {
         'Content-Type': 'multipart/x-mixed-replace;boundary="BOUNDARY-ID"',
         'Connection': 'keep-alive',
@@ -49,41 +47,62 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
     });
 
     let isReady = true
+
+    function writeImage() {
+        try {
+            let data = fs.readFileSync(tmpFile)
+            if (!isReady) {
+                console.log('Skip frame: ' + data.length)
+                return;
+            }
+            isReady = false
+
+            res.write('--BOUNDARY-ID\r\n')
+            res.write('Content-Type: image/jpeg\r\n')
+            res.write('Content-Length: ' + data.length + '\r\n')
+            res.write("\r\n")
+            res.write(data, 'binary')
+            res.write("\r\n", () => {
+                isReady = true
+            })
+        } catch (ex) {
+            console.log('Unable to send frame: ' + ex)
+        }
+    }
+
+    if (fs.existsSync(tmpFile)) {
+        writeImage()
+    }
+
     const fileWatcher = fs.watch(tmpFile, {persistent: true}, (eventType) => {
         if (eventType == 'change') {
-            try {
-                let data = fs.readFileSync(tmpFile)
-                if (!isReady) {
-                    console.log('Skip frame: ' + data.length)
-                    return;
-                }
-                isReady = false
-
-                res.write('--BOUNDARY-ID\r\n')
-                res.write('Content-Type: image/jpeg\r\n')
-                res.write('Content-Length: ' + data.length + '\r\n')
-                res.write("\r\n")
-                res.write(data, 'binary')
-                res.write("\r\n", () => {
-                    isReady = true
-                })
-            } catch (ex) {
-                console.log('Unable to send frame: ' + ex)
-            }
-
+            writeImage()
         }
     })
 
-    videoStream.on("stop", () => {
+    libcam.on("stop", () => {
         fileWatcher.close()
         res.end()
     })
 })
 
-app.get("/stop", (req: Request, res: Response) => {
-    videoStream.stop()
+app.put("/stop", (req: Request, res: Response) => {
+    libcam.stop()
     res.status(200)
         .send("stream finished")
+        .end()
+})
+
+app.post("/config", (req: Request<{}, {}, LibcamConfig>, res) => {
+    libcam.config = req.body
+    res.status(200)
+        .end()
+})
+
+app.put("/start", (req: Request, res: Response) => {
+    libcam.start()
+    res.status(200)
+        .send("stream started")
         .end()
 })
 

@@ -4,12 +4,21 @@
     <meta name="viewport" content="width=device-width, minimum-scale=0.1">
     <title>Pi lapse debug page</title>
 </head>
-<body style="margin: 0; background: #0e0e0e; height: 100%" onload="onLoad()">
-<p id="status" style="color: #f0f0f0;"></p>
-<img id="streamImg" style="-webkit-user-select: none;margin: auto;background-color: hsl(0, 0%, 25%);"
-     alt="Video stream" src="">
-<button onclick="stopStream()">stop</button>
-<button onclick="status()">status</button>
+<body style="margin: 0; background: #0e0e0e; height: 100%" onload="onLoad()" data-new-gr-c-s-check-loaded="14.1032.0" data-gr-ext-installed="">
+<div style="margin: auto; width: 50%; padding: 10px;">
+    <p id="status" style="color: #f0f0f0;text-align: center;">Video streaming on stage </p>
+    <div>
+        <img id="streamImg" style="-webkit-user-select: none;margin: auto;background-color: hsl(0, 0%, 25%);max-width: 100%;max-height:100%;"
+             alt="Video stream"
+             src="">
+    </div>
+    <div style="width: 100%;display: flex;justify-content: center;">
+        <button onclick="stopStream()" style="margin: 20px;width: 56px;height: 26px;">stop</button>
+        <button onclick="status()" style="margin: 20px;width: 56px;height: 26px;">status</button>
+        <button onclick="startStream()" style="margin: 20px;width: 56px;height: 26px;">start</button>
+    </div>
+
+</div>
 </body>
 </html>
 
@@ -17,25 +26,29 @@
 
     function onLoad() {
         document.getElementById("streamImg").src = window.location.origin + "/stream.mjpg"
-        setTimeout(status, 2000)
+        setTimeout(startStream, 2000)
     }
 
-    function updateStatus(url) {
+    function sendRequest(method, path) {
         const xmlHttp = new XMLHttpRequest();
         xmlHttp.onreadystatechange = function () {
             if (xmlHttp.readyState === xmlHttp.DONE && xmlHttp.status === 200) {
                 document.getElementById("status").innerHTML = xmlHttp.responseText
             }
         }
-        xmlHttp.open("GET", url, true);
+        xmlHttp.open(method, window.location.origin + path, true);
         xmlHttp.send(null);
     }
 
     function stopStream() {
-        updateStatus(window.location.origin + "/stop");
+        sendRequest("PUT", "/stop");
     }
 
     function status() {
-        updateStatus(window.location.origin + "/healthCheck")
+        sendRequest("GET", "/healthCheck")
+    }
+
+    function startStream() {
+        sendRequest("PUT", "/start");
     }
 </script>

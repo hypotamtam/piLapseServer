@@ -1,5 +1,5 @@
 
-export enum VideoStreamConfigValue {
+export enum LibcamConfigValue {
     width = "--width",
     height = "--height",
     timeout = "-t",
@@ -38,6 +38,11 @@ export enum VideoStreamConfigValue {
     thumb = "--thumb",
     encoding = "-e",
     raw = "-r",
+    immediate = "--immediate"
 }
 
-export type VideoStreamConfig = {[key in VideoStreamConfigValue]?: string}
+export type RawLibcamConfigValue = keyof typeof LibcamConfigValue
+export type LibcamConfig = Partial<Record<RawLibcamConfigValue, string>>
+
+
+
