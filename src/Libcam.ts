@@ -13,7 +13,7 @@ export class Libcam {
 
     get isRunning(): boolean {
         if (this.process) {
-            return this.process.exitCode == null
+            return this.process.signalCode == null || this.process.exitCode == null
         }
         return false
     }
@@ -46,6 +46,7 @@ export class Libcam {
         }
         if (this.process) {
             this.process.kill()
+            this.process = undefined
         }
         this.emitter.emit('stop')
     }
