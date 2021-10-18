@@ -5,6 +5,7 @@ import {v4 as uuidV4} from "uuid"
 import path from "path"
 import {Libcam} from "./Libcam";
 import {LibcamConfig} from "./LibcamConfig";
+import cors from "cors"
 
 const app = express()
 
@@ -15,11 +16,13 @@ const libcam = new Libcam({
     "width": "640",
     "height": "320",
     "exposure": "sport",
-    "timelapse": "50",
+    "timelapse": "100",
     "timeout": "9999999",
     "output": tmpFile,
     "immediate": ""
 })
+
+app.use(cors)
 
 app.get('/', (req, res) => {
     res.writeHead(200, { "content-type": "text/html;charset=utf-8" })
@@ -80,7 +83,7 @@ app.get('/stream.mjpg', (req: Request, res: Response) => {
         }
     })
 
-    libcam.on("stop", () => {
+    libcam.once("stop", () => {
         fileWatcher.close()
         res.end()
     })

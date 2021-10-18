@@ -51,7 +51,7 @@ export class Libcam {
         this.emitter.emit('stop')
     }
 
-    on(event:"stop", listener: () => void) {
+    once(event:"stop", listener: () => void) {
         this.emitter.on('stop', listener)
     }
 
@@ -61,7 +61,7 @@ export class Libcam {
             stdio: 'ignore'
         })
 
-        this.process.on("close", (code, signal) => {
+        this.process.once("close", (code, signal) => {
             if (code == 0) {
                 this.run()
             } else {
@@ -70,7 +70,7 @@ export class Libcam {
             }
         })
 
-        this.process.on('error', error => {
+        this.process.once('error', error => {
             console.error(`Command ${this.command} failed ${error}`)
             this.stop()
         })
