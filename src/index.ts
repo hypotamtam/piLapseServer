@@ -22,7 +22,7 @@ const libcam = new Libcam({
     "immediate": ""
 })
 
-app.use(cors)
+app.use(cors())
 
 app.get('/', (req, res) => {
     res.writeHead(200, { "content-type": "text/html;charset=utf-8" })
