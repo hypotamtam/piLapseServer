@@ -3,8 +3,6 @@ import {ChildProcess, spawn} from "child_process";
 import {LibcamConfig, LibcamConfigKey, RawLibcamConfigKey} from "./LibcamConfig";
 
 export class Libcam {
-    private static get RESTART_CODE() { return 8888 }
-
     private process?: ChildProcess
 
     private emitter = new EventEmitter()
@@ -12,6 +10,8 @@ export class Libcam {
     private readonly command = "libcamera-still"
     private parameters: string[] = []
     private _config: LibcamConfig = {}
+
+    private shouldRestart = false
 
     get isRunning(): boolean {
         if (this.process) {
@@ -60,7 +60,8 @@ export class Libcam {
 
     private updateProcess() {
         if (this.isRunning) {
-            this.process?.kill(Libcam.RESTART_CODE)
+            this.shouldRestart = true
+            this.process?.kill()
         }
     }
 
@@ -71,7 +72,8 @@ export class Libcam {
         })
 
         this.process.once("close", (code, signal) => {
-            if (code == 0 || code == Libcam.RESTART_CODE) {
+            if (code == 0 || this.shouldRestart) {
+                this.shouldRestart = false
                 console.log(`Command ${this.command} stopped with code ${code} and signal ${signal}`)
                 this.start()
             } else {
