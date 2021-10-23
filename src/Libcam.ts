@@ -15,7 +15,7 @@ export class Libcam {
 
     get isRunning(): boolean {
         if (this.process) {
-            return this.process.killed
+            return !this.process.killed
         }
         return false
     }
