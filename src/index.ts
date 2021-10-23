@@ -4,7 +4,7 @@ import os from "os"
 import {v4 as uuidV4} from "uuid"
 import path from "path"
 import {Libcam} from "./Libcam";
-import {LibcamConfig} from "./LibcamConfig";
+import {convertToStreamConfig, mergeConfig, StreamConfig} from "./LibcamConfig"
 import cors from "cors"
 
 const app = express()
@@ -23,6 +23,7 @@ const libcam = new Libcam({
 })
 
 app.use(cors())
+app.use(express.json())
 
 app.get('/', (req, res) => {
     res.writeHead(200, { "content-type": "text/html;charset=utf-8" })
@@ -96,10 +97,16 @@ app.put("/stop", (req: Request, res: Response) => {
         .end()
 })
 
-app.post("/config", (req: Request<{}, {}, LibcamConfig>, res) => {
-    libcam.config = req.body
+app.post("/config", (req: Request<{}, {}, StreamConfig>, res) => {
+    libcam.config = mergeConfig(libcam.config, req.body)
     res.status(200)
         .end()
+})
+
+app.get("/config", (req: Request, res: Response<StreamConfig, {}>) => {
+    res.status(200)
+       .json(convertToStreamConfig(libcam.config))
+       .end()
 })
 
 app.put("/start", (req: Request, res: Response) => {

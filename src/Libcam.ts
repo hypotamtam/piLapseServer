@@ -1,6 +1,6 @@
 import EventEmitter from "events";
 import {ChildProcess, spawn} from "child_process";
-import {LibcamConfig, LibcamConfigValue, RawLibcamConfigValue} from "./LibcamConfig";
+import {LibcamConfig, LibcamConfigKey, RawLibcamConfigKey} from "./LibcamConfig";
 
 export class Libcam {
 
@@ -10,6 +10,7 @@ export class Libcam {
 
     private readonly command = "libcamera-still"
     private parameters: string[] = []
+    private _config: LibcamConfig = {}
 
     get isRunning(): boolean {
         if (this.process) {
@@ -18,10 +19,16 @@ export class Libcam {
         return false
     }
 
+    get config() {
+         return this._config
+    }
+
     set config(value: LibcamConfig) {
+        console.log("Update the stream config: " + JSON.stringify(value))
+        this._config = value
         this.parameters = Object.keys(value)
-            .map(key => key as RawLibcamConfigValue)
-            .flatMap( configValue => [LibcamConfigValue[configValue], value[configValue] as string])
+            .map(key => key as RawLibcamConfigKey)
+            .flatMap( configValue => [LibcamConfigKey[configValue], value[configValue] as string])
         if (this.isRunning) {
             this.stop()
             this.start()
