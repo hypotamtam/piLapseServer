@@ -79,6 +79,13 @@ export function convertToStreamConfig(config: LibcamConfig) {
 }
 
 export function mergeConfig(libcamConfig: LibcamConfig, streamConfig: StreamConfig) {
-    return { ...libcamConfig, ...streamConfig } as LibcamConfig
+    const sanitizedStreamConfig = Object.keys(streamConfig)
+                                        .reduce((convertedConfig, key) => {
+                                            if (isStreamConfigKey(key)) {
+                                                convertedConfig[key] = streamConfig[key]
+                                            }
+                                            return convertedConfig
+                                        }, {} as StreamConfig)
+    return { ...libcamConfig, ...sanitizedStreamConfig } as LibcamConfig
 }
 
