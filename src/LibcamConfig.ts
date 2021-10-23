@@ -68,6 +68,10 @@ function isStreamConfigKey(value: string): value is RawStreamConfigKey {
     return Object.keys(StreamConfigKey).includes(value)
 }
 
+function isLibcamConfigKey(value: string): value is RawStreamConfigKey {
+    return Object.keys(LibcamConfigKey).includes(value)
+}
+
 export function convertToStreamConfig(config: LibcamConfig) {
     return Object.keys(config)
                  .reduce((convertedConfig, key) => {
@@ -86,6 +90,15 @@ export function mergeConfig(libcamConfig: LibcamConfig, streamConfig: StreamConf
                                             }
                                             return convertedConfig
                                         }, {} as StreamConfig)
-    return { ...libcamConfig, ...sanitizedStreamConfig } as LibcamConfig
+
+    const libcamConfigWithoutStreamConfig = Object.keys(libcamConfig)
+      .reduce((convertedConfig, key) => {
+          if (!isStreamConfigKey(key) && isLibcamConfigKey(key)) {
+              convertedConfig[key] = libcamConfig[key]
+          }
+          return convertedConfig
+      }, {} as LibcamConfig)
+
+    return { ...libcamConfigWithoutStreamConfig, ...sanitizedStreamConfig } as LibcamConfig
 }
 
