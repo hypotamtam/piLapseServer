@@ -72,7 +72,8 @@ export class Libcam {
 
         this.process.once("close", (code, signal) => {
             if (code == 0 || code == Libcam.RESTART_CODE) {
-                this.run()
+                console.log(`Command ${this.command} stopped with code ${code} and signal ${signal}`)
+                this.start()
             } else {
                 console.error(`Command ${this.command} failed with code ${code} and signal ${signal}`)
                 this.process = undefined
