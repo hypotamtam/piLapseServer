@@ -31,6 +31,7 @@ export class Libcam {
             .flatMap( configValue => [LibcamConfigKey[configValue], value[configValue] as string])
         if (this.isRunning) {
             this.stop()
+            console.log("Is libcam running: " + this.isRunning)
             this.start()
         }
     }
@@ -41,6 +42,7 @@ export class Libcam {
 
     start() {
         if (this.isRunning) {
+            console.log("Libcam already running")
             return
         }
         console.log("Start " + this.command + " " + this.parameters.join(" "))
@@ -56,6 +58,7 @@ export class Libcam {
             this.process = undefined
         }
         this.emitter.emit('stop')
+        console.log("Libcam is stopped: " + this.isRunning)
     }
 
     once(event:"stop", listener: () => void) {
