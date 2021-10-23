@@ -3,6 +3,7 @@ import {ChildProcess, spawn} from "child_process";
 import {LibcamConfig, LibcamConfigKey, RawLibcamConfigKey} from "./LibcamConfig";
 
 export class Libcam {
+    private static get RESTART_CODE() { return 8888 }
 
     private process?: ChildProcess
 
@@ -14,7 +15,7 @@ export class Libcam {
 
     get isRunning(): boolean {
         if (this.process) {
-            return this.process.signalCode == null || this.process.exitCode == null
+            return this.process.killed
         }
         return false
     }
@@ -29,11 +30,7 @@ export class Libcam {
         this.parameters = Object.keys(value)
             .map(key => key as RawLibcamConfigKey)
             .flatMap( configValue => [LibcamConfigKey[configValue], value[configValue] as string])
-        if (this.isRunning) {
-            this.stop()
-            console.log("Is libcam running: " + this.isRunning)
-            this.start()
-        }
+        this.updateProcess()
     }
 
     constructor(config: LibcamConfig) {
@@ -53,16 +50,18 @@ export class Libcam {
         if (!this.isRunning) {
             return
         }
-        if (this.process) {
-            this.process.kill()
-            this.process = undefined
-        }
-        this.emitter.emit('stop')
+        this.process?.kill()
         console.log("Libcam is stopped: " + this.isRunning)
     }
 
     once(event:"stop", listener: () => void) {
         this.emitter.on('stop', listener)
+    }
+
+    private updateProcess() {
+        if (this.isRunning) {
+            this.process?.kill(Libcam.RESTART_CODE)
+        }
     }
 
     private run() {
@@ -72,17 +71,13 @@ export class Libcam {
         })
 
         this.process.once("close", (code, signal) => {
-            if (code == 0) {
+            if (code == 0 || code == Libcam.RESTART_CODE) {
                 this.run()
             } else {
                 console.error(`Command ${this.command} failed with code ${code} and signal ${signal}`)
-                this.stop()
+                this.process = undefined
+                this.emitter.emit('stop')
             }
-        })
-
-        this.process.once('error', error => {
-            console.error(`Command ${this.command} failed ${error}`)
-            this.stop()
         })
     }
 }
