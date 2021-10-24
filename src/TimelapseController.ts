@@ -50,14 +50,18 @@ export class TimelapseController {
     fs.mkdirSync(dirPath, {recursive: true})
     fs.appendFileSync(path.join(dirPath, "config.json"), JSON.stringify(timeLapse, null, 2))
     let imageCount = 1
+    const saveConfig = {...this.libcam.config}
     this.libcam.config = {
       ...this.libcam.config,
       "timelapse": timeLapse.interval.toString(),
+      "width": undefined,
+      "height": undefined
     }
 
     this.libcam.lockConfig = true
     const finishTimelapse = () => {
       this.libcam.lockConfig = false
+      this.libcam.config = saveConfig
       fileWatcher.close()
       clearTimeout(timeoutId)
       if (callback) {
@@ -72,6 +76,7 @@ export class TimelapseController {
       if (eventType == 'change') {
         try {
           const filePath = path.join(dirPath, `${imageCount}.jpg`)
+          imageCount = imageCount + 1
           const data = fs.readFileSync(filePath)
           fs.appendFile(filePath, data, err => console.error(`Error writing ${imageCount}.jpg at ${dirPath}: ${err}`))
         } catch (ex) {
