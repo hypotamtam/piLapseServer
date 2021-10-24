@@ -13,6 +13,8 @@ export class Libcam {
 
     private shouldRestart = false
 
+    lockConfig = false
+
     get isRunning(): boolean {
         if (this.process) {
             return !this.process.killed
@@ -25,6 +27,9 @@ export class Libcam {
     }
 
     set config(value: LibcamConfig) {
+        if (this.lockConfig) {
+            throw "libcam config is locked"
+        }
         console.log("Update the stream config: " + JSON.stringify(value))
         this._config = value
         this.parameters = Object.keys(value)

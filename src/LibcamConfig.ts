@@ -56,7 +56,6 @@ export enum StreamConfigKey {
     saturation = "Adjust the colour saturation of the output, where 1.0 = normal and 0.0 = greyscale",
     sharpness = "Adjust the sharpness of the output image, where 1.0 = normal sharpening",
     denoise = "Sets the Denoise operating mode: auto, off, cdn_off, cdn_fast, cdn_hq",
-    timelapse = "Time interval (in ms) between timelapse captures",
 }
 
 export type RawLibcamConfigKey = keyof typeof LibcamConfigKey
