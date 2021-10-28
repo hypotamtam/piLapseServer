@@ -75,9 +75,9 @@ export class TimelapseController {
       if (eventType == 'change') {
         try {
           const filePath = path.join(dirPath, `${imageCount}.jpg`)
-          imageCount = imageCount + 1
-          const data = fs.readFileSync(filePath)
+          const data = fs.readFileSync(libcamOutput)
           fs.appendFile(filePath, data, err => console.error(`Error writing ${imageCount}.jpg at ${dirPath}: ${err}`))
+          imageCount = imageCount + 1
         } catch (ex) {
           console.error(`Error writing ${imageCount}.jpg at ${dirPath}: ${ex}`)
         }
