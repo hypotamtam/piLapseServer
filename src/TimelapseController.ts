@@ -14,7 +14,6 @@ export class TimelapseController {
   private readonly timelapsePath: string
 
   constructor(libcam: Libcam, timelapsePath: string) {
-    console.log(__filename + " " + libcam)
     this.libcam = libcam
     this.timelapsePath = timelapsePath
   }
