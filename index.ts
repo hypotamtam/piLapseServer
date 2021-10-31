@@ -1,5 +1,6 @@
 import express, {Request, Response} from "express"
 import fs from "fs"
+import fsPromise from "fs/promises"
 import os from "os"
 import {v4 as uuidV4} from "uuid"
 import path from "path"
@@ -10,25 +11,7 @@ import {body, checkSchema, ValidationChain, validationResult} from "express-vali
 import {Schema} from "express-validator/src/middlewares/schema"
 import {StreamController} from "./src/StreamController"
 import {TimelapseController} from "./src/TimelapseController"
-
-const validate = (validations: ValidationChain[]) => {
-  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    await Promise.all(validations.map(validation => validation.run(req)))
-
-    const errors = validationResult(req)
-    if (errors.isEmpty()) {
-      return next()
-    }
-
-    const errorArray = errors.array()
-    res.status(400)
-       .json({
-         error: errorArray
-           .reduce((previousValue, currentValue, index) => previousValue + currentValue.msg + (errorArray.length === index + 1 ? "" : " - "), "")
-       })
-      .end()
-  }
-}
+import {FFMPEG} from "./src/FFMPEG"
 
 const tmpFile = path.resolve(path.join(os.tmpdir(), uuidV4() + ".jpg"))
 fs.appendFileSync(tmpFile, "")
@@ -44,7 +27,49 @@ const libcam = new Libcam({
 })
 
 const streamController = new StreamController(libcam)
-const timelapseController = new TimelapseController(libcam, path.join(__dirname, "timelapse"))
+
+const timelapsePath = path.join(__dirname, "timelapse")
+const timelapseController = new TimelapseController(libcam, timelapsePath)
+
+const createMissingVideo = async () => {
+  const timelapseFolders = await fsPromise.readdir(timelapsePath, {withFileTypes: true})
+  const videoPathsToCreate = timelapseFolders
+    .filter(folder => folder.isDirectory())
+    .map(folder => path.join(timelapsePath, folder.name, `${folder}.mp4`))
+    .filter(videoFilePath => !fs.existsSync(videoFilePath))
+    .map(videoFilePath => path.dirname(videoFilePath))
+
+  for (const videoFilePath of videoPathsToCreate) {
+    try {
+      await FFMPEG.createVideo(videoFilePath)
+      console.log(`Timelapse video created ${videoFilePath}`)
+    } catch (err) {
+      console.error(`Failed to create timelapse ${videoFilePath}: ${err}`)
+    }
+  }
+}
+createMissingVideo()
+  .then(() => console.log(`Missing timelapse videos created`))
+  .catch(reason => console.error(`Missing timelapse video failed: ${reason}`))
+
+const validate = (validations: ValidationChain[]) => {
+  return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    await Promise.all(validations.map(validation => validation.run(req)))
+
+    const errors = validationResult(req)
+    if (errors.isEmpty()) {
+      return next()
+    }
+
+    const errorArray = errors.array()
+    res.status(400)
+       .json({
+         error: errorArray
+           .reduce((previousValue, currentValue, index) => previousValue + currentValue.msg + (errorArray.length === index + 1 ? "" : " - "), ""),
+       })
+       .end()
+  }
+}
 
 const app = express()
 app.use(cors())
@@ -71,10 +96,10 @@ app.put("/stop", (req, res) => streamController.stop(req, res))
 app.put("/start", (req, res) => streamController.start(req, res))
 
 const streamConfigBodyValidations = checkSchema(Object.keys(StreamConfigKey)
-                                                .reduce((schema, key) => {
-                                                  schema[key] = {optional: true, isString: true, in: ["body"]}
-                                                  return schema
-                                                }, {} as Schema),
+                                                      .reduce((schema, key) => {
+                                                        schema[key] = {optional: true, isString: true, in: ["body"]}
+                                                        return schema
+                                                      }, {} as Schema),
 ).concat([
   body()
     .custom((body, meta) => Object.keys(meta.req.body).every(key => Object.keys(StreamConfigKey).includes(key)))
@@ -97,7 +122,7 @@ const timelapseBodyValidations = [
     .isString()
     .withMessage("name must be a string"),
   body()
-    .custom((body, meta) => Object.keys(meta.req.body).every(key =>["duration", "interval", "name"].includes(key)))
+    .custom((body, meta) => Object.keys(meta.req.body).every(key => ["duration", "interval", "name"].includes(key)))
     .withMessage('Some extra parameters are sent'),
 ]
 

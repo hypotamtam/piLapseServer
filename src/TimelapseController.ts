@@ -2,8 +2,9 @@ import {Libcam} from "./Libcam"
 import path from "path"
 import fs from "fs"
 import {Request, Response} from "express"
+import {FFMPEG} from "./FFMPEG"
 
-interface TimelapseDTO {
+export interface TimelapseDTO {
   duration: number
   interval: number
   name: string
@@ -36,7 +37,7 @@ export class TimelapseController {
     }
 
     try {
-      this.executeAsync(dirPath, timeLapse, libcamOutput, () => console.log(""))
+      this.executeAsync(dirPath, timeLapse, libcamOutput, () => FFMPEG.createVideo(dirPath))
       res.status(200)
          .end()
     } catch (err) {
@@ -45,7 +46,7 @@ export class TimelapseController {
     }
   }
 
-  private executeAsync(dirPath: string, timeLapse: TimelapseDTO, libcamOutput: string, callback:(() => void) | undefined = undefined) {
+  private executeAsync(dirPath: string, timeLapse: TimelapseDTO, libcamOutput: string, callback: (() => void) | undefined = undefined) {
     fs.mkdirSync(dirPath, {recursive: true})
     fs.appendFileSync(path.join(dirPath, "config.json"), JSON.stringify(timeLapse, null, 2))
     let imageCount = 1
@@ -54,7 +55,7 @@ export class TimelapseController {
       ...this.libcam.config,
       "timelapse": timeLapse.interval.toString(),
       "width": undefined,
-      "height": undefined
+      "height": undefined,
     }
 
     this.libcam.lockConfig = true
@@ -86,4 +87,6 @@ export class TimelapseController {
 
     this.libcam.once("stop", finishTimelapse)
   }
+
+
 }
