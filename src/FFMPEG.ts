@@ -37,7 +37,7 @@ export class FFMPEG extends CommandLine {
     const imagePathTemplate = path.join(imagesPath, "*.jpg")
     const videoPath =  path.join(imagesPath, `${config.name}.mp4`)
     this.parameters = [
-      "-r", "24", "-f", "image2" ,"-pattern_type" ,"glob" , "-i" , imagePathTemplate,
+      "-r", "24", "-f", "image2" ,"-pattern_type" ,"glob" , "-i" , `'${imagePathTemplate}'`,
       "-s", "1920x1080",  "-vcodec" ,"libx264", videoPath
     ]
   }
