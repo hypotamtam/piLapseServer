@@ -52,8 +52,6 @@ export class FFMPEG extends CommandLine {
     return config
   }
 
-
-
   protected close(code: number | null, signal: NodeJS.Signals | null): void {
     if (code == 0 && signal == null) {
       this.listener(null)

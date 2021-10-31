@@ -35,7 +35,7 @@ const createMissingVideo = async () => {
   const timelapseFolders = await fsPromise.readdir(timelapsePath, {withFileTypes: true})
   const videoPathsToCreate = timelapseFolders
     .filter(folder => folder.isDirectory())
-    .map(folder => path.join(timelapsePath, folder.name, `${folder}.mp4`))
+    .map(folder => path.join(timelapsePath, folder.name, `${folder.name}.mp4`))
     .filter(videoFilePath => !fs.existsSync(videoFilePath))
     .map(videoFilePath => path.dirname(videoFilePath))
 
