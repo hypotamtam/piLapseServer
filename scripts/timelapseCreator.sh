@@ -21,7 +21,7 @@ if [ -f "$mp4File" ]; then
     exit 1
 fi
 
-echo $mp4File
-echo $jpgFiles
+echo "JPEG files $jpgFiles"
+echo "mp4 file $mp4File"
 
 ffmpeg -r 24 -f image2 -pattern_type glob -i "$jpgFiles" -s 1920x1080 -vcodec libx264 "$mp4File"
