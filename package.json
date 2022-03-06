@@ -2,7 +2,7 @@
     "name": "pistream",
     "version": "1.0.0",
     "description": "Stream pi cam",
-    "main": "index.js",
+    "main": "src/index.js",
     "scripts": {
         "start:dev": "nohup nodemon </dev/null &",
         "start:dev-win": "nodemon",

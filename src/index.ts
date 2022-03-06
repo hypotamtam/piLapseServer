@@ -4,14 +4,14 @@ import fsPromise from "fs/promises"
 import os from "os"
 import {v4 as uuidV4} from "uuid"
 import path from "path"
-import {Libcam} from "./src/Libcam"
-import {StreamConfigKey} from "./src/LibcamConfig"
+import {Libcam} from "./Libcam"
+import {StreamConfigKey} from "./LibcamConfig"
 import cors from "cors"
 import {body, checkSchema, ValidationChain, validationResult} from "express-validator"
 import {Schema} from "express-validator/src/middlewares/schema"
-import {StreamController} from "./src/StreamController"
-import {TimelapseController} from "./src/TimelapseController"
-import {FFMPEG} from "./src/FFMPEG"
+import {StreamController} from "./StreamController"
+import {TimelapseController} from "./TimelapseController"
+import {FFMPEG} from "./FFMPEG"
 
 const tmpFile = path.resolve(path.join(os.tmpdir(), uuidV4() + ".jpg"))
 fs.appendFileSync(tmpFile, "")
@@ -28,7 +28,7 @@ const libcam = new Libcam({
 
 const streamController = new StreamController(libcam)
 
-const timelapsePath = path.join(__dirname, "timelapse")
+const timelapsePath = path.join(process.cwd(), "timelapse")
 const timelapseController = new TimelapseController(libcam, timelapsePath)
 
 const createMissingVideo = async () => {
