@@ -28,7 +28,7 @@ export class FFMPEG extends CommandLine {
   private constructor(imagesPath: string, listener: (err: Error | null) => void) {
     super()
     this.listener = listener
-    const scriptPath = path.join(process.cwd(), "script/timelapseCreator.sh")
+    const scriptPath = path.join(process.cwd(), "scripts/timelapseCreator.sh")
     this.parameters = [ scriptPath, imagesPath ]
   }
 
