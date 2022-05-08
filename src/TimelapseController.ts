@@ -2,7 +2,7 @@ import {Libcam} from "./Libcam"
 import path from "path"
 import fs from "fs"
 import {Request, Response} from "express"
-import {FFMPEG} from "./FFMPEG"
+import { FFMPEG } from "./FFMPEG"
 
 export interface TimelapseDTO {
   duration: number
@@ -37,7 +37,7 @@ export class TimelapseController {
     }
 
     try {
-      this.executeAsync(dirPath, timeLapse, libcamOutput) //() => FFMPEG.createVideo(dirPath))
+      this.executeAsync(dirPath, timeLapse, libcamOutput, () => FFMPEG.createVideo(dirPath))
       res.status(200)
          .end()
     } catch (err) {
