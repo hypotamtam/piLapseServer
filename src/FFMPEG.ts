@@ -1,7 +1,7 @@
 import {CommandLine} from "./CommandLine"
 
 export class FFMPEG extends CommandLine {
-  protected readonly command: string = "./script/timelapseCreator.sh"
+  protected readonly command: string = "bash"
 
   private readonly listener: (err: Error | null) => void
 
@@ -27,7 +27,7 @@ export class FFMPEG extends CommandLine {
   private constructor(imagesPath: string, listener: (err: Error | null) => void) {
     super()
     this.listener = listener
-    this.parameters = [ imagesPath ]
+    this.parameters = [ "script/timelapseCreator.sh", imagesPath ]
   }
 
   protected close(code: number | null, signal: NodeJS.Signals | null): void {
