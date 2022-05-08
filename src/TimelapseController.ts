@@ -73,11 +73,13 @@ export class TimelapseController {
     const timeoutId = setTimeout(finishTimelapse, timeLapse.duration)
 
     const fileWatcher = fs.watch(libcamOutput, {persistent: true}, (eventType) => {
+      console.log(`fileWatcher event: ${eventType})`)
       if (eventType == 'change') {
         try {
           const filePath = path.join(dirPath, `${imageCount}.jpg`)
           const data = fs.readFileSync(libcamOutput)
-          fs.appendFile(filePath, data, err => console.error(`Error writing ${imageCount}.jpg at ${dirPath}: ${err}`))
+          fs.appendFile(filePath, data, err => console.error(`Error while ${imageCount}.jpg is written at ${dirPath}: ${err}`))
+          console.log(`${imageCount} wrote)`)
           imageCount = imageCount + 1
         } catch (ex) {
           console.error(`Error writing ${imageCount}.jpg at ${dirPath}: ${ex}`)
