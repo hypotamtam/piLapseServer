@@ -1,10 +1,24 @@
 import {Libcam} from "./Libcam"
 import {Request, Response} from "express"
-import {convertToStreamConfig, mergeConfig} from "./LibcamConfig"
+import {convertToStreamConfig, mergeConfig, StreamConfigKey} from "./LibcamConfig"
 import fs from "fs"
+import { Controller } from "./Controller"
+import { body, checkSchema, ValidationChain } from "express-validator"
+import {Schema} from "express-validator/src/middlewares/schema"
 
-export class StreamController {
+export class StreamController implements Controller {
   private readonly libcam: Libcam
+
+  validationChain: ValidationChain[] = checkSchema(Object.keys(StreamConfigKey)
+  .reduce((schema, key) => {
+    schema[key] = {optional: true, isString: true, in: ["body"]}
+    return schema
+  }, {} as Schema),
+  ).concat([
+    body()
+    .custom((body, meta) => Object.keys(meta.req.body).every(key => Object.keys(StreamConfigKey).includes(key)))
+    .withMessage('Some extra parameters are sent'),
+  ])
 
   constructor(libcam: Libcam) {
     this.libcam = libcam

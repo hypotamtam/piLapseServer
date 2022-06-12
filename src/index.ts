@@ -5,10 +5,9 @@ import os from "os"
 import {v4 as uuidV4} from "uuid"
 import path from "path"
 import {Libcam} from "./Libcam"
-import {StreamConfigKey} from "./LibcamConfig"
 import cors from "cors"
-import {body, checkSchema, ValidationChain, validationResult} from "express-validator"
-import {Schema} from "express-validator/src/middlewares/schema"
+import { ValidationChain, validationResult} from "express-validator"
+
 import {StreamController} from "./StreamController"
 import {TimelapseController} from "./TimelapseController"
 import {FFMPEG} from "./FFMPEG"
@@ -95,38 +94,11 @@ app.get('/stream.mjpg', (req, res) => streamController.stream(req, res))
 app.put("/stop", (req, res) => streamController.stop(req, res))
 app.put("/start", (req, res) => streamController.start(req, res))
 
-const streamConfigBodyValidations = checkSchema(Object.keys(StreamConfigKey)
-                                                      .reduce((schema, key) => {
-                                                        schema[key] = {optional: true, isString: true, in: ["body"]}
-                                                        return schema
-                                                      }, {} as Schema),
-).concat([
-  body()
-    .custom((body, meta) => Object.keys(meta.req.body).every(key => Object.keys(StreamConfigKey).includes(key)))
-    .withMessage('Some extra parameters are sent'),
-])
-
-app.post("/config", validate(streamConfigBodyValidations), (req, res) => streamController.updateConfig(req, res))
+app.post("/config", validate(streamController.validationChain), (req, res) => streamController.updateConfig(req, res))
 app.get("/config", (req, res) => streamController.getConfig(req, res))
 
-const timelapseBodyValidations = [
-  body("duration")
-    .isInt()
-    .not().isString()
-    .withMessage("duration must be a number"),
-  body("interval")
-    .isInt()
-    .not().isString()
-    .withMessage("interval must be a number"),
-  body("name")
-    .isString()
-    .withMessage("name must be a string"),
-  body()
-    .custom((body, meta) => Object.keys(meta.req.body).every(key => ["duration", "interval", "name"].includes(key)))
-    .withMessage('Some extra parameters are sent'),
-]
-
-app.put("/timelapse", validate(timelapseBodyValidations), (req, res) => timelapseController.start(req, res))
+app.put("/timelapse", validate(timelapseController.validationChain), (req, res) => timelapseController.start(req, res))
+app.get("/timelapse", (req, res) => timelapseController.list(req, res))
 
 app.listen(3001, () => {
   console.log(`server started at http://localhost:3001`)

@@ -3,6 +3,10 @@ import path from "path"
 import fs from "fs"
 import {Request, Response} from "express"
 import { FFMPEG } from "./FFMPEG"
+import { Controller } from "./Controller"
+import { ValidationChain, body } from "express-validator"
+import { readdir } from 'node:fs/promises';
+
 
 export interface TimelapseDTO {
   duration: number
@@ -10,16 +14,34 @@ export interface TimelapseDTO {
   name: string
 }
 
-export class TimelapseController {
+export class TimelapseController implements Controller {
+  
   private libcam: Libcam
   private readonly timelapsePath: string
+
+  readonly validationChain: ValidationChain[] = [
+      body("duration")
+        .isInt()
+        .not().isString()
+        .withMessage("duration must be a number"),
+      body("interval")
+        .isInt()
+        .not().isString()
+        .withMessage("interval must be a number"),
+      body("name")
+        .isString()
+        .withMessage("name must be a string"),
+      body()
+        .custom((body, meta) => Object.keys(meta.req.body).every(key => ["duration", "interval", "name"].includes(key)))
+        .withMessage('Some extra parameters are sent'),
+  ]
 
   constructor(libcam: Libcam, timelapsePath: string) {
     this.libcam = libcam
     this.timelapsePath = timelapsePath
   }
 
-  start(req: Request, res: Response) {
+  start(req: Request, res: Response): void {
     if (this.libcam.config.output == undefined) {
       res.status(500)
          .end()
@@ -44,6 +66,19 @@ export class TimelapseController {
       res.status(500)
          .end()
     }
+  }
+
+  async list(req: Request, res: Response): Promise<void> {
+    const timeLapseDirs = await readdir(this.timelapsePath)
+    const timeLapseDirContents = await Promise.all(timeLapseDirs.map(async (dir) => readdir(dir) ))
+    const timelapseFile = timeLapseDirContents
+      .reduce((accumulator, value) => accumulator.concat(value), [])
+      .filter((file) => file.endsWith(".mp4"))
+      .map((mp4File) => mp4File.substring(0, mp4File.length - 4))
+    
+    res.status(200)
+      .json( { timelapses: timelapseFile })
+      .end()
   }
 
   private executeAsync(dirPath: string, timeLapse: TimelapseDTO, libcamOutput: string, callback: (() => void) | undefined = undefined) {
